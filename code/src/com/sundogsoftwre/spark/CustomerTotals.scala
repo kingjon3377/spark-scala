@@ -18,10 +18,11 @@ object CustomerTotals {
     val sc = new SparkContext("local[*]", "CustomerTotals")
     val lines = sc.textFile("../SparkScala/customer-orders.csv")
     val parsedLines = lines.map(parseLine)
-    val customerTotals = parsedLines.reduceByKey((x, y) => x + y).collect()
-    for (row <- customerTotals) {
-      val customerId = row._1
-      val total = row._2
+    val customerTotals = parsedLines.reduceByKey((x, y) => x + y)
+    val sortedTotals = customerTotals.map(x => (x._2, x._1)).sortByKey()
+    for (row <- sortedTotals) {
+      val customerId = row._2
+      val total = row._1
       println(f"Customer $customerId%s spent $total%.2f")
     }
   }
