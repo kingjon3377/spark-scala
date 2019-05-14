@@ -49,22 +49,18 @@ object PopularHashtags {
     // Now extract the text of each status update into DStreams using map()
     val statuses = tweets.map(status => status.getText())
     
-    // Blow out each word into a new DStream
-    val tweetwords = statuses.flatMap(tweetText => tweetText.split(" "))
-    
-    // Now eliminate anything that's not a hashtag
-    val hashtags = tweetwords.filter(word => word.startsWith("#"))
+    val tweetLengths = statuses.map(_.length);
     
     // Map each hashtag to a key/value pair of (hashtag, 1) so we can count them up by adding up the values
-    val hashtagKeyValues = hashtags.map(hashtag => (hashtag, 1))
+    val lengthKeyValues = tweetLengths.map(hashtag => (hashtag, 1))
     
     // Now count them up over a 5 minute window sliding every one second
-    val hashtagCounts = hashtagKeyValues.reduceByKeyAndWindow( (x,y) => x + y, (x,y) => x - y, Seconds(300), Seconds(1))
+    val lengthCounts = lengthKeyValues.reduceByKeyAndWindow( (x,y) => x + y, (x,y) => x - y, Seconds(300), Seconds(1))
     //  You will often see this written in the following shorthand:
     //val hashtagCounts = hashtagKeyValues.reduceByKeyAndWindow( _ + _, _ -_, Seconds(300), Seconds(1))
     
     // Sort the results by the count values
-    val sortedResults = hashtagCounts.transform(rdd => rdd.sortBy(x => x._2, false))
+    val sortedResults = lengthCounts.transform(rdd => rdd.sortBy(x => x._2, false))
     
     // Print the top 10
     sortedResults.print
