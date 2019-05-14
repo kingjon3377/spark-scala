@@ -49,21 +49,17 @@ object PopularHashtags {
     // Now extract the text of each status update into DStreams using map()
     val statuses = tweets.map(status => status.getText())
     
-    val tweetLengths = statuses.map(_.length);
+    val tweetLengths = statuses.map(_.length.toFloat);
     
     // Map each hashtag to a key/value pair of (hashtag, 1) so we can count them up by adding up the values
-    val lengthKeyValues = tweetLengths.map(hashtag => (hashtag, 1))
+    val lengthKeyValues = tweetLengths.map((_, 1))
     
     // Now count them up over a 5 minute window sliding every one second
-    val lengthCounts = lengthKeyValues.reduceByKeyAndWindow( (x,y) => x + y, (x,y) => x - y, Seconds(300), Seconds(1))
+    val lengthCount = lengthKeyValues.reduceByWindow( (x,y) => ((x._1 * x._2 + y._1 * y._2) / (x._2 + y._2), x._2 + y._2), (x,y) => ((x._1 * x._2 - y._1 * y._2) / (x._2 - y._2), x._2 - y._2), Seconds(300), Seconds(1))
     //  You will often see this written in the following shorthand:
     //val hashtagCounts = hashtagKeyValues.reduceByKeyAndWindow( _ + _, _ -_, Seconds(300), Seconds(1))
     
-    // Sort the results by the count values
-    val sortedResults = lengthCounts.transform(rdd => rdd.sortBy(x => x._2, false))
-    
-    // Print the top 10
-    sortedResults.print
+    lengthCount.print(1)
     
     // Set a checkpoint directory, and kick it all off
     // I could watch this all day!
