@@ -12,6 +12,7 @@ object TopDefender {
       shotClock: Double, dribbles: Int, touchTime: Double, shotDistance: Double,
       shotType: Int, shotMade: Boolean, closestDefender: Player,
       closestDefenderDistance: Double, player: Player)
+  case class ShotSummary(player: Player, average: Double)
 
   def parseHomeGame(input: String): Option[Boolean] = {
     input match {
@@ -90,7 +91,9 @@ object TopDefender {
 
     println("Top Ten Defenders (ordering by distance to shooter):")
 
-    shots.filter(shot => !shot.shotMade).sort($"closestDefenderDistance".desc).
-      map(shot => shot.closestDefender.name).limit(10).foreach(name => println(name))
+    shots.filter(!_.shotMade).map(shot => ShotSummary(shot.closestDefender, 
+        shot.shotType.toDouble * shot.closestDefenderDistance)).
+      groupBy($"player").mean("average").sort($"avg(average)".desc).
+      limit(10).map(_.getStruct(0).getAs[String](0)).foreach(println(_))
   }
 }

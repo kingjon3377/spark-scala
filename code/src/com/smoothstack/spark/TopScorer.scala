@@ -11,7 +11,8 @@ object TopScorer {
       finalMargin: Int, shotNumber: Int, period: Integer, gameClock: Double,
       shotClock: Double, dribbles: Int, touchTime: Double, shotDistance: Double,
       shotType: Int, shotMade: Boolean, closestDefender: Player,
-      closestDefenderDistance: Double, player: Player)
+      closestDefenderDistance: Double, playPoints: Int, player: Player)
+  case class ShotSummary(player: Player, average: Double)
 
   def parseHomeGame(input: String): Option[Boolean] = {
     input match {
@@ -77,7 +78,7 @@ object TopScorer {
     return Some(Shot(fields(0).toInt, fields(1), homeGame, wonGame, fields(4).toInt,
         fields(5).toInt, fields(6).toInt, parseClock(fields(7)), parseShotClock(fields(8)),
         fields(9).toInt, fields(10).toDouble, fields(11).toDouble, fields(12).toInt,
-        shotMade, Player(fields(14), fields(15).toInt), fields(16).toDouble,
+        shotMade, Player(fields(14), fields(15).toInt), fields(16).toDouble, fields(18).toInt,
         Player(fields(19), fields(20).toInt)))
   }
 
@@ -90,7 +91,9 @@ object TopScorer {
 
     println("Top Ten Scorers (ordering by defender distance):")
 
-    shots.filter($"shotMade").sort($"closestDefenderDistance".asc).
-      map(shot => shot.player.name).limit(10).foreach(name => println(name))
+    shots.filter($"shotMade").map(shot => ShotSummary(shot.player, 
+        shot.playPoints.toDouble / shot.closestDefenderDistance)).
+      groupBy($"player").mean("average").sort($"avg(average)".desc).
+      limit(10).map(_.getStruct(0).getAs[String](0)).foreach(println(_))
   }
 }
