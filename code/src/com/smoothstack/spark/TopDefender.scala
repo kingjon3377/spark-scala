@@ -91,7 +91,7 @@ object TopDefender {
 
     println("Top Ten Defenders (ordering by distance to shooter):")
 
-    shots.filter(!_.shotMade).map(shot => ShotSummary(shot.closestDefender, 
+    shots.filter(!_.shotMade).map(shot => ShotSummary(shot.closestDefender,
         shot.shotType.toDouble * shot.closestDefenderDistance)).
       groupBy($"player").mean("average").sort($"avg(average)".desc).
       limit(10).map(_.getStruct(0).getAs[String](0)).foreach(println(_))

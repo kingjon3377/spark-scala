@@ -93,12 +93,12 @@ object PostShooters {
 
     import org.apache.spark.sql.functions._
     shots.filter(shot => shot.shotDistance > 5.0).groupBy($"player").
-      agg(count("shotClock"), sum("playPoints")).flatMap(group => { 
+      agg(count("shotClock"), sum("playPoints")).flatMap(group => {
         if (group.getAs[Long](1) < 100) {
           None
         } else {
           val player = group.getStruct(0)
-          Some(ShotSummary(Player(player.getAs(0), player.getAs(1)), 
+          Some(ShotSummary(Player(player.getAs(0), player.getAs(1)),
               group.getAs[Long](2).toDouble / group.getAs[Long](1).toDouble))
         }
       }).sort($"average".desc).limit(10).map(shot => shot.player.name).
