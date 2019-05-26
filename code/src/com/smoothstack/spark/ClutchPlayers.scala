@@ -87,19 +87,22 @@ object ClutchPlayers {
     val spark = SparkSession.builder.appName("PostShooters").master("local[*]").getOrCreate()
     val lines = spark.sparkContext.textFile("../nba-shot-logs/shot_logs.csv")
     import spark.implicits._
-    val shots = lines.flatMap(mapper).toDS
+    val shots = lines.flatMap(mapper).toDS.cache()
+
+    import org.apache.spark.sql.functions._
+    val prolificShooters = shots.groupBy($"player").agg(count("shotClock")).
+      filter(_.getAs[Long](1) >= 100).map(_.getStruct(0).getAs[Int](1)).collect()
 
     println("Top Ten Clutch Shooters (by points per shot from 43:00 on):")
 
-    import org.apache.spark.sql.functions._
     shots.filter(_.gameClock >= 43.0).groupBy($"player").
-      agg(count("shotClock"), sum("playPoints")).flatMap(group => { 
-        if (group.getAs[Long](1) < 100) {
-          None
-        } else {
-          val player = group.getStruct(0)
-          Some(ShotSummary(Player(player.getAs(0), player.getAs(1)), 
+      agg(count("shotClock"), sum("playPoints")).flatMap(group => {
+        val player = group.getStruct(0)
+        if (prolificShooters.contains(player.getAs[Int](1))) {
+          Some(ShotSummary(Player(player.getAs(0), player.getAs(1)),
               group.getAs[Long](2).toDouble / group.getAs[Long](1).toDouble))
+        } else {
+          None
         }
       }).sort($"average".desc).limit(10).map(shot => shot.player.name).
       foreach(name => println(name))
